@@ -35,7 +35,7 @@ static int freeSched(struct scheduler *s){
   return 1;
 }
 
-static struct scheduler * init(int nthreads, int qlen){
+void init(struct scheduler *s, int nthreads, int qlen){
   int error = 0;
   pthread_mutexattr_t psharedm;
   error = pthread_mutexattr_init(&psharedm);
@@ -44,13 +44,6 @@ static struct scheduler * init(int nthreads, int qlen){
   if(error != 0) gestion_erreur(" pthread_mutexattr_setpshared");
   
   ERROR_INT(qlen, "qlen doit être positif");
-  
-  struct scheduler *s =(struct scheduler*) mmap(NULL, sizeof(struct scheduler), PROT_READ | PROT_WRITE,
-    							   MAP_SHARED | MAP_ANONYMOUS , -1, 0);
-    	if(s == MAP_FAILED){
-    	      perror("erreur mmap:");
-    	      exit(1);
-    	}
   
   s->nthreads = (nthreads == 0)? sched_default_threads():nthreads;
   s->p =  malloc(sizeof(Pile));
@@ -70,7 +63,7 @@ static struct scheduler * init(int nthreads, int qlen){
   
   printf("INIT **Taille %d :\n ", (s->p ->capa));
   */
-  return (s);
+  //return (s);
 }
 
 static void * lancer_threads(void *ptr){
@@ -82,7 +75,7 @@ static void * lancer_threads(void *ptr){
     err = pthread_mutex_lock(&(s->mutex));
     if(err == 0){
       Tache* t = depiler(s-> p);
-    
+    err = pthread_mutex_unlock(&(s->mutex));
       if(t != NULL){
 	(s->nbr)++;
 	((taskfunc)t->f)(t->closure, s);
@@ -98,7 +91,7 @@ static void * lancer_threads(void *ptr){
     
     printf("fin creation tache nbr %d \t etat pile %d \n",s->nbr, pileVide(s-> p));
     
-  }while(!pileVide(s-> p) || (s->nbr) != 0);
+  }while(!pileVide(s-> p) || 0 != (s->nbr));
   
   printf("fin lancer\n");
   
@@ -124,10 +117,14 @@ static void createThreads(struct scheduler *s){
 }
 
 int sched_init(int nthreads, int qlen, taskfunc f, void *closure){
-  struct scheduler *s;
-  s = init(nthreads, qlen);
-  if(s == NULL)
-    exit(1);
+struct scheduler *s = malloc(sizeof(struct scheduler));
+/*(struct scheduler*) mmap(NULL, sizeof(struct scheduler), PROT_READ | PROT_WRITE,
+    				MAP_SHARED | MAP_ANONYMOUS , -1, 0);
+    	if(s == MAP_FAILED){
+    	      perror("erreur mmap:");
+    	      exit(1);
+}*/
+  init(s, nthreads, qlen);
   
   empiler((s-> p), f, closure);
   

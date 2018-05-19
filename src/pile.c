@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
 #include <errno.h>
+#include <sys/mman.h>
 #include "../include/pile.h"
 
 int pilePleine(Pile *p){
@@ -17,7 +17,6 @@ void empiler(Pile *p, void* nvF, void *args){
     perror("Pile Pleine");
     return;
   }
-  puts("Dans empiler");
   Tache *new = malloc(sizeof(Tache));
     ERROR_STRUCT(new,"pile.c: empiler : malloc");
     ERROR_STRUCT(p, "pile.c: empiler : p");
@@ -26,21 +25,18 @@ void empiler(Pile *p, void* nvF, void *args){
       new -> closure = args;
       new -> svt = p->first;
       p -> first = new;
-      (p -> capa) += 1;
-      printf("Taille empiler %d : \n", (p -> capa));
+      (p -> capa)++;
+      //printf("fin empiler [%ld]:\n", (long)p->first);
 }
-
 Tache* depiler(Pile *p){
   ERROR_STRUCT(p, "pile.c: depiler: pile nulle");
-
-  puts("Dans depiler");
   Tache *elementDepile = p->first;
   
-  if (p != NULL && p->first != NULL){
-    p -> first = elementDepile -> svt;
-    (p -> capa) -= 1;
+  if((p != NULL) && (p -> first) != NULL){
+    (p -> first) = elementDepile -> svt;
+    (p -> capa)--;
   }
-   printf("Taille apres if depiler  %d :\n ", (p -> capa));
+      //printf("fin depiler:\n";
 
    return elementDepile;
 }
@@ -55,8 +51,10 @@ int freePile(Pile *p){
     if(courant != NULL)
       free(tmp);
   }
-  free(p);
-  return 1;
+  //free(p);
+  if(munmap((void *) p, sizeof(Pile)) < 0)
+       exit(EXIT_FAILURE);
+  return 0;
 }
 
 
